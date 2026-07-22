@@ -1,0 +1,149 @@
+{
+  "name": "foreshadow",
+  "displayName": "Foreshadow",
+  "publisher": "iseg-ide-sub1",
+  "icon": "assets/icons/icon.png",
+  "description": "Foreshadow IDE dynamic context system (data foundation + Foreshadow context layer)",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iseg-ide-sub1/foreshadow"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "foreshadow",
+    "context",
+    "repomap",
+    "IDE"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "foreshadow-panel",
+          "title": "Foreshadow",
+          "icon": "assets/icons/sidebar1.png"
+        }
+      ]
+    },
+    "views": {
+      "foreshadow-panel": [
+        {
+          "type": "webview",
+          "id": "foreshadow.panel",
+          "name": "Foreshadow Context",
+          "icon": "assets/icons/sidebar1.png"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "foreshadow.exportContext",
+        "title": "Foreshadow: Export Context"
+      },
+      {
+        "command": "foreshadow.copyContext",
+        "title": "Foreshadow: Copy Context"
+      },
+      {
+        "command": "foreshadow.openPanel",
+        "title": "Foreshadow: Open Panel"
+      },
+      {
+        "command": "foreshadow.gotoSettings",
+        "title": "Foreshadow: Open Settings",
+        "icon": "$(gear)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "foreshadow.gotoSettings",
+          "when": "view == foreshadow.panel",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Foreshadow",
+      "properties": {
+        "foreshadow.saveDir": {
+          "type": "string",
+          "default": ".foreshadow",
+          "markdownDescription": "Workspace-relative data directory for Foreshadow logs/tasks/soft-relations.",
+          "order": 1
+        },
+        "foreshadow.control.taskRecognize": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable periodic task recognition.",
+          "order": 2
+        },
+        "foreshadow.taskRecognizer.baseURL": {
+          "type": "string",
+          "default": "https://api.chatanywhere.tech/v1",
+          "markdownDescription": "OpenAI-compatible base URL for task recognizer.",
+          "order": 3
+        },
+        "foreshadow.taskRecognizer.model": {
+          "type": "string",
+          "default": "deepseek-v3",
+          "markdownDescription": "Model name for task recognizer.",
+          "order": 4
+        },
+        "foreshadow.taskRecognizer.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API key for task recognizer. Empty key disables LLM calls safely.",
+          "order": 5
+        },
+        "foreshadow.taskRecognizer.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "markdownDescription": "Temperature for task recognizer.",
+          "order": 6
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "lint": "eslint src",
+    "vsce:package": "vsce package --no-dependencies",
+    "dev": "node ./scripts/dev-extension.mjs --watch",
+    "dev:ext": "node ./scripts/dev-extension.mjs --watch",
+    "dev:ui": "node ./scripts/dev-ui.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "eslint": "^9.13.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.3",
+    "vsce": "^2.15.0",
+    "webpack": "^5.95.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.78",
+    "@langchain/openai": "^0.6.14",
+    "diff": "^8.0.2",
+    "strip-ansi": "^7.1.0"
+  }
+}
