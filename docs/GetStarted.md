@@ -310,4 +310,6 @@ foreshadow/
 
 - [架构说明书.md](./架构说明书.md) — 背景、功能、架构与模块说明
 - [SPEC-v0.2.md](./SPEC-v0.2.md) — 实现基线与验收项
+- [SPEC-bitfun-v1.md](./SPEC-bitfun-v1.md) — BitFun Host 集成 SPEC
+- [PUBLISH-npm-bitfun.md](./PUBLISH-npm-bitfun.md) — `@foreshadow/core` npm 发布（P7）
 - 仓库根 [README.md](../README.md) — 简要索引

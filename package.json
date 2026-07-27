@@ -124,6 +124,8 @@
     "package": "webpack --mode production --devtool hidden-source-map",
     "lint": "eslint src",
     "vsce:package": "vsce package --no-dependencies",
+    "sync:core": "node ./packages/core/scripts/sync-lib-src.mjs",
+    "pack:core": "pnpm run sync:core && npm pack --prefix packages/core",
     "dev": "node ./scripts/dev-extension.mjs --watch",
     "dev:ext": "node ./scripts/dev-extension.mjs --watch",
     "dev:ui": "node ./scripts/dev-ui.mjs"

@@ -1,0 +1,48 @@
+{
+  "name": "@foreshadow/core",
+  "version": "0.2.0",
+  "description": "Foreshadow L2/L3 foundation and context (platform-agnostic)",
+  "license": "MIT",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "import": "./index.ts",
+      "default": "./index.ts"
+    }
+  },
+  "files": [
+    "index.ts",
+    "src/**/*.ts",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "sync": "node ./scripts/sync-lib-src.mjs",
+    "prepack": "node ./scripts/sync-lib-src.mjs",
+    "prepublishOnly": "node ./scripts/sync-lib-src.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iseg-ide-sub1/foreshadow.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/iseg-ide-sub1/foreshadow#readme",
+  "bugs": {
+    "url": "https://github.com/iseg-ide-sub1/foreshadow/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "diff": "^8.0.2"
+  },
+  "keywords": [
+    "foreshadow",
+    "context",
+    "repomap",
+    "ide"
+  ]
+}

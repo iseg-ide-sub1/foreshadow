@@ -11,7 +11,7 @@
 
 依赖方向：L0 → L1 → L2 → L3。事件一律 L1 EventBridge → L2 EventIngress → L3。
 
-详细说明见 [docs/架构说明书.md](docs/架构说明书.md)；实现基线见 [docs/SPEC-v0.2.md](docs/SPEC-v0.2.md)。
+详细说明见 [docs/架构说明书.md](docs/架构说明书.md)；实现基线见 [docs/SPEC-v0.2.md](docs/SPEC-v0.2.md)；BitFun 集成见 [docs/SPEC-bitfun-v1.md](docs/SPEC-bitfun-v1.md)；`@foreshadow/core` 发布见 [docs/PUBLISH-npm-bitfun.md](docs/PUBLISH-npm-bitfun.md)。
 
 ## 开发
 

@@ -478,7 +478,7 @@ L3 仅依赖 `ContextQueryService`（RepoMap），与 v0.2 一致。
 | P4 | TipTap Markdown 采集 | BitFun |
 | P5 | Document/Search/FS/Config/LLM Ports + TaskRecognizer | BitFun |
 | P6 | `foreshadow_get_context` + 工具权限 | BitFun |
-| P7 | npm 发布流程文档；`file:`→version 说明；B1–B16 验收 | 双仓 |
+| P7 | npm 发布流程文档；`file:`→version 说明；B1–B16 验收 | 双仓；见 [PUBLISH-npm-bitfun.md](./PUBLISH-npm-bitfun.md) 与 BitFun `docs/plans/foreshadow-bitfun-release-and-acceptance-v1.md` |
 
 ---
 
