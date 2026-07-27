@@ -1,9 +1,25 @@
 import * as logItem from '../domain/log-item';
 import { EventType } from '../domain/event-types';
 import { Artifact, ArtifactType } from '../domain/artifact';
-import * as os from 'os';
 
-const platform = os.platform();
+/**
+ * Resolve host platform without importing Node `os`.
+ * Browser / Vite hosts (e.g. BitFun WebView) do not provide a real `os` module.
+ */
+function resolvePlatform(): string {
+  if (typeof process !== 'undefined' && typeof process.platform === 'string' && process.platform) {
+    return process.platform;
+  }
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (/Windows/i.test(ua)) return 'win32';
+    if (/Mac OS X|Macintosh/i.test(ua)) return 'darwin';
+    if (/Linux/i.test(ua)) return 'linux';
+  }
+  return 'unknown';
+}
+
+const platform = resolvePlatform();
 
 let stripAnsi: any;
 (async () => {

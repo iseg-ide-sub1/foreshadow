@@ -8,7 +8,7 @@
 | Related SPEC | [SPEC-bitfun-v1.md](./SPEC-bitfun-v1.md) §2 / P7 |
 | Integration tag | `1.0.0-bitfun` |
 
-This document is the **foreshadow-side** half of P7. BitFun-side `file:` → semver steps and B1–B16 live in the BitFun repo:
+This document is the **foreshadow-side** half of P7. BitFun-side npm install / bump steps and B1–B16 live in the BitFun repo:
 
 `docs/plans/foreshadow-bitfun-release-and-acceptance-v1.md`
 
@@ -31,10 +31,11 @@ Hosts implement ports and call `runtime.publish(RawHostEvent)`.
 ```text
 packages/core/
   package.json    # name @foreshadow/core, exports "."
-  index.ts        # re-exports ../../src/core
+  index.ts        # re-exports ./src/core (synced tree)
+  src/            # foundation + context + core.ts (from repo root via sync)
 ```
 
-Current `package.json` points `main`/`exports` at TypeScript sources so BitFun Vite can consume `file:` / npm without a separate library build.
+Current `package.json` points `main`/`exports` at TypeScript sources so BitFun Vite can consume the published npm package without a separate library build.
 
 **Packaging rule (important):** npm only includes files under `packages/core/`. Repo-root `src/**` is **not** packed via `../../` globs. Before pack/publish, run:
 
@@ -92,13 +93,15 @@ npm pack
 # → foreshadow-core-0.2.0.tgz
 ```
 
-Smoke with BitFun (sibling checkout):
+Smoke with BitFun after a local pack or publish:
 
 ```bash
-# In BitFun src/web-ui — dependency already file: to packages/core
-pnpm install
-pnpm run type-check
-pnpm run test:run src/tools/foreshadow
+# Option A (recommended): publish or use npm pack + add tgz, then in BitFun:
+pnpm --dir src/web-ui add @foreshadow/core@^0.2.0
+# Option B (core authors only, uncommitted): temporary path override, then restore ^semver
+
+pnpm run type-check:web
+pnpm --dir src/web-ui run test:run src/tools/foreshadow
 ```
 
 ---
@@ -147,9 +150,17 @@ pnpm --dir src/web-ui run test:run src/tools/foreshadow
 
 Commit lockfile changes. See BitFun P7 doc for full acceptance.
 
-### Dev still on `file:`
+### BitFun mainline dependency
 
-Keep `file:../foreshadow/packages/core` (path adjusted to your layout) until the first npm version is validated in CI. Do not mix unpinned `latest` in production lockfiles.
+BitFun mainline uses registry semver only:
+
+```json
+"@foreshadow/core": "^0.2.0"
+```
+
+Do **not** commit long-lived `file:` / machine-local paths. Core authors may use a temporary `file:` link while iterating on an unreleased core change, then switch back to `^x.y.z` before merging.
+
+Do not mix unpinned `latest` in production lockfiles.
 
 ---
 

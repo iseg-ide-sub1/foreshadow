@@ -18,7 +18,7 @@
 
 | ID | 主题 | 结论 |
 |----|------|------|
-| D1 | 交付边界 | **彻底分仓**。BitFun 以 **npm 包** 引入 Foreshadow：开发期 `file:` / 相对路径，发布后 semver 版本依赖。不把核心并进 BitFun monorepo。 |
+| D1 | 交付边界 | **彻底分仓**。BitFun 以 **npm 包** `@foreshadow/core` 引入（semver + lockfile）。不把核心并进 BitFun monorepo；禁止主线长期 `file:`。 |
 | D2 | LanguageIntel | v1 **No-op**；`LastArtifactContext` **允许为空**。 |
 | D3 | Prompt / Agent 工具 | **仅桩**；本轮不采集、不扩展 `RawHostEvent`。 |
 | D4 | 终端 | 多会话；`phase: 'end'` 带完整输出；无 shell integration **降级跳过**；输出 **≤ 64KB/命令**。 |
@@ -33,7 +33,7 @@
 | D13 | Workspace 实例 | **按 workspace 多实例**（`Map`）。 |
 | D14 | 授权 | **默认需用户授权** 后才采集 / 提供快照。 |
 | D15 | Markdown | **TipTap Markdown 进入 v1** 采集范围。 |
-| D16 | 包引入 | 开发 `file:`/`link:` → 发布 npm 版本（见 §2）。 |
+| D16 | 包引入 | 主线 npm `@foreshadow/core` semver；仅 core 作者可短时 `file:` 联调（见 §2）。 |
 
 ---
 
@@ -88,10 +88,9 @@ BitFun/                              # 独立 Git
 
 | 阶段 | BitFun 侧依赖示例 | 说明 |
 |------|-------------------|------|
-| 本地开发 | `"@foreshadow/core": "file:../foreshadow/packages/core"` 或 pnpm `link:` | 两仓并排 checkout；路径以团队约定为准 |
-| CI | checkout 双仓 + 同 file: 或先 `npm pack` 再装 | 禁止静默指向未钉版本的远端 main |
-| 发布集成 | `"@foreshadow/core": "^x.y.z"` | foreshadow 发 npm；BitFun 锁兼容范围 |
-| 禁止 | 将 foreshadow 源码树并入 BitFun monorepo 作为唯一真相源 | 与「彻底分仓」冲突 |
+| 开发 / CI / 发布（现行） | `"@foreshadow/core": "^0.2.0"` | 从 npm registry 安装；lockfile 钉死解析版本 |
+| 仅 core 作者临时联调 | 短时 `file:` / `link:` sibling | **不得**合入 BitFun 主线；联调后改回 semver |
+| 禁止 | 将 foreshadow 源码树并入 BitFun monorepo 作为唯一真相源；长期提交 `file:` 本机路径 | 与「彻底分仓」+ 仓库卫生冲突 |
 
 ### 2.3 分层映射
 
@@ -463,7 +462,7 @@ L3 仅依赖 `ContextQueryService`（RepoMap），与 v0.2 一致。
 | B13 | PromptBuilder **无**自动注入 |
 | B14 | TipTap Markdown 编辑可产生 textChanged（或文档约定的等价事件） |
 | B15 | 模型可用时 Task 可更新；LLM 失败不影响其它上下文字段 |
-| B16 | BitFun 可通过 `file:` 链接 `@foreshadow/core` 完成构建 |
+| B16 | BitFun 可通过 npm 依赖 `@foreshadow/core`（`^x.y.z` + lockfile）完成构建 |
 
 ---
 
@@ -478,7 +477,7 @@ L3 仅依赖 `ContextQueryService`（RepoMap），与 v0.2 一致。
 | P4 | TipTap Markdown 采集 | BitFun |
 | P5 | Document/Search/FS/Config/LLM Ports + TaskRecognizer | BitFun |
 | P6 | `foreshadow_get_context` + 工具权限 | BitFun |
-| P7 | npm 发布流程文档；`file:`→version 说明；B1–B16 验收 | 双仓；见 [PUBLISH-npm-bitfun.md](./PUBLISH-npm-bitfun.md) 与 BitFun `docs/plans/foreshadow-bitfun-release-and-acceptance-v1.md` |
+| P7 | npm 发布；BitFun 主线依赖改为 `@foreshadow/core` semver；B1–B16 验收 | 双仓；见 [PUBLISH-npm-bitfun.md](./PUBLISH-npm-bitfun.md) 与 BitFun `docs/plans/foreshadow-bitfun-release-and-acceptance-v1.md` |
 
 ---
 
@@ -490,7 +489,7 @@ L3 仅依赖 `ContextQueryService`（RepoMap），与 v0.2 一致。
 | TerminalService 丢弃命令事件 | 独立 `terminal_event` 监听与聚合 |
 | 终端/编辑内存膨胀 | 64KB/命令 + Foreshadow 既有 log 上限常量 |
 | Search Port 与 flashgrep 差异 | Keyword 失败则空，不阻断主路径 |
-| 双仓版本漂移 | 发布后 BitFun 锁 npm 版本；开发文档固定相对路径 |
+| 双仓版本漂移 | 发布后 BitFun 锁 npm semver + lockfile；禁止主线 file: 漂移 |
 | 权限 UX 分裂 | 100% 复用现有 tool permission |
 | Markdown 无细粒度 diff | L2 兼容 after-only / 空 changes |
 
