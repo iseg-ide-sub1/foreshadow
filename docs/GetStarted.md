@@ -1,6 +1,6 @@
 # Foreshadow 开发入门（Get Started）
 
-本文面向要在本仓库上编译、调试和贡献代码的开发者。产品设计与分层约束的完整说明见 [架构说明书.md](./架构说明书.md)；实现基线见 [SPEC-v0.2.md](./SPEC-v0.2.md)。
+本文面向要在本仓库上编译、调试和贡献代码的开发者。产品设计与分层约束的完整说明见 [架构说明书.md](./架构说明书.md)。
 
 ---
 
@@ -239,7 +239,7 @@ WebView / 命令应通过 `FoundationRuntime.getSnapshot()` 或 `exportContextJs
 
 ### 5.6 推荐贡献流程
 
-1. **读文档**：`SPEC-v0.2.md` + 本文 + 架构说明书相关章节。
+1. **读文档**：本文 + 架构说明书相关章节。
 2. **开分支**，改动尽量落在**单一层次**；跨层变更时先 Ports/领域类型，再实现。
 3. **本地验证**：
    - `pnpm lint`
@@ -281,8 +281,7 @@ foreshadow/
 │   └── context/foreshadow.ts    # L3
 └── docs/
     ├── GetStarted.md            # 本文
-    ├── 架构说明书.md
-    └── SPEC-v0.2.md
+    └── 架构说明书.md
 ```
 
 ---
@@ -309,7 +308,5 @@ foreshadow/
 ## 7. 相关文档
 
 - [架构说明书.md](./架构说明书.md) — 背景、功能、架构与模块说明
-- [SPEC-v0.2.md](./SPEC-v0.2.md) — 实现基线与验收项
-- [SPEC-bitfun-v1.md](./SPEC-bitfun-v1.md) — BitFun Host 集成 SPEC
-- [PUBLISH-npm-bitfun.md](./PUBLISH-npm-bitfun.md) — `@foreshadow/core` npm 发布（P7）
 - 仓库根 [README.md](../README.md) — 简要索引
+- BitFun 集成 SPEC（`SPEC-bitfun-v1.md`）与 `@foreshadow/core` 发布说明（`PUBLISH-npm-bitfun.md`）已移出本仓，归档至工作区级过程文档目录 `proc_doc/`

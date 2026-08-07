@@ -53,4 +53,4 @@ npm publish --access public
 
 `prepack` / `prepublishOnly` run `sync` automatically.
 
-See `docs/PUBLISH-npm-bitfun.md` in the foreshadow repository.
+See `PUBLISH-npm-bitfun.md` (archived to the workspace-level `proc_doc/` directory).
