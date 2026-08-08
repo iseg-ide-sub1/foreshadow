@@ -1,0 +1,113 @@
+# Publish @foreshadow/core (foreshadow/packages/core) to the public npm registry.
+#
+# Process source: proc_doc/PUBLISH-npm-bitfun.md
+#   - §2 packaging rule: npm only packs files under packages/core; prepublishOnly
+#     runs scripts/sync-lib-src.mjs to copy repo-root src/foundation + src/context
+#     + src/core.ts into packages/core/src before packing.
+#   - §4 local verification: pnpm lint, pnpm compile, sync + npm pack --dry-run.
+#   - §5 publish: npm publish --access public with NPM_TOKEN.
+#
+# Triggers:
+#   - push to main (path-filtered to core-relevant paths)
+#   - GitHub release created
+# A version-exists guard skips the publish when the current version is already on
+# npm, so a push to main without a version bump does not fail the run.
+
+name: Publish @foreshadow/core to npm
+
+on:
+  release:
+    types: [created]
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/core/**'
+      - 'src/foundation/**'
+      - 'src/context/**'
+      - 'src/core.ts'
+      - '.github/workflows/publish-npm.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint / compile / verify tarball
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Compile (VS Code Host regression)
+        run: pnpm compile
+
+      - name: Sync lib sources & verify tarball is not empty
+        working-directory: packages/core
+        run: |
+          pnpm sync
+          npm pack --dry-run
+          COUNT="$(find src -name '*.ts' | wc -l)"
+          echo "Synced .ts files under packages/core/src: ${COUNT}"
+          if [ "$COUNT" -lt 40 ]; then
+            echo "::error::Expected dozens of .ts files under src/, got ${COUNT} (packaging rule, see PUBLISH-npm-bitfun.md section 4)" >&2
+            exit 1
+          fi
+
+  publish-npm:
+    name: Publish @foreshadow/core
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Skip if version already published
+        id: check-version
+        working-directory: packages/core
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "@foreshadow/core@${VERSION}" version >/dev/null 2>&1; then
+            echo "Version ${VERSION} is already on npm — skipping publish."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Version ${VERSION} is not on npm yet — will publish."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.check-version.outputs.skip != 'true'
+        working-directory: packages/core
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
