@@ -137,6 +137,17 @@ export async function getLogItemFromSelectedText(
 }
 
 /**
+ * Normalize line endings to LF on a before/after pair together.
+ * Hosts can hand us CRLF (disk read) and LF (editor serialization) for the same
+ * buffer; diffing them raw marks every line changed and yields whole-file phantom
+ * diffs, and it breaks net-zero merge cancellation (before !== after by EOL only).
+ * Always normalize a pair TOGETHER so the pair stays consistent.
+ */
+function normalizeNewlines(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+/**
  * Build per-change before/after strings for Edit History.
  * Prefers full beforeText when provided; otherwise falls back to afterText reverse-apply,
  * then to local change text only (BitFun incremental path).
@@ -147,12 +158,14 @@ function resolveChangeBeforeAfter(
   afterText: string | undefined,
 ): { before: string; after: string } {
   if (typeof beforeText === 'string') {
+    // Apply the change on raw text first (offsets are raw-text offsets),
+    // then normalize the pair together.
     const before = beforeText;
     const after =
       before.substring(0, change.rangeOffset) +
       change.text +
       before.substring(change.rangeOffset + change.rangeLength);
-    return { before, after };
+    return { before: normalizeNewlines(before), after: normalizeNewlines(after) };
   }
 
   if (typeof afterText === 'string' && change.rangeOffset >= 0) {
@@ -167,13 +180,13 @@ function resolveChangeBeforeAfter(
       change.rangeLength > 0
         ? prefix + `[${change.rangeLength} chars]` + suffix
         : beforeExact;
-    return { before: recoveredBefore, after: afterText };
+    return { before: normalizeNewlines(recoveredBefore), after: normalizeNewlines(afterText) };
   }
 
   // Local-only fallback: treat the inserted text as the after side of a tiny edit window.
   return {
     before: '',
-    after: change.text ?? '',
+    after: normalizeNewlines(change.text ?? ''),
   };
 }
 
@@ -196,8 +209,8 @@ export async function getLogItemsFromChangedText(
     const start = { line: 0, character: 0 };
     const end = { line: Math.max(0, lineCount - 1), character: 0 };
     const artifact = await getArtifactFromRange(languageIntel, uri, start, end, lineCount, true);
-    const before = beforeText ?? '';
-    const after = afterText ?? beforeText ?? '';
+    const before = normalizeNewlines(beforeText ?? '');
+    const after = normalizeNewlines(afterText ?? beforeText ?? '');
     if (before !== after) {
       const context = new logItem.Context(
         logItem.ContextType.Edit,

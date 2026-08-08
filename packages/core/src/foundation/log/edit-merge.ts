@@ -40,22 +40,31 @@ export function lostFocus(lastLog: logItem.LogItem, curLog: logItem.LogItem): bo
 }
 
 /**
+ * 统一换行符为 \n。不同来源（磁盘读取 vs 编辑器序列化）可能给出 CRLF / LF，
+ * 若直接 diff 会把整份文件判为逐行变化，产出整文件级假 diff。diff 前先归一。
+ */
+function normalizeNewlines(text: string): string {
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+/**
  * 直接获取两段代码的diff行具体内容
  * @param before 修改前的代码
  * @param after 修改后的代码
  * @returns 返回diff行具体内容，每个元素为一行代码
  */
 export function getDiffLines(before: string, after: string): string[] {
-    const diff = diffLines(before, after).filter(part => part.added || part.removed);
+    const diff = diffLines(normalizeNewlines(before), normalizeNewlines(after)).filter(part => part.added || part.removed);
     return diff.map(part => part.value.split('\n')).flat();
 }
 
 /**
  * 计算前后代码的diff窗口，并添加标记(Delete, Insert)
- * @description 每行的内容为：<|标记|>(如有) 代码，例如
+ * @description 每行的内容为：<|标记|>(如有) 代码。只输出每个变化块（hunk）及其
+ * 上下 padding 行；多个不相邻的 hunk 之间用 "..." 分隔，中间未编辑的大段内容不输出。
  * @param before 修改前的代码
  * @param after 修改后的代码
- * @param padding 整段diff的窗口前后保留夺少行代码，默认editDiffPadding
+ * @param padding 每个hunk前后保留多少行上下文，默认editDiffPadding
  * @param addLineNumberAfter 是否为输出的每行添加其在after文本中的行号（1-based），默认true。Delete的行不添加行号
  * @returns 
  */
@@ -65,51 +74,90 @@ export function getDiffWithMarkers(
     padding: number = editDiffPadding,
     addLineNumberAfter: boolean = true): string {
     // 计算diff
-    const diff = diffLines(before, after);
+    const diff = diffLines(normalizeNewlines(before), normalizeNewlines(after));
 
     // 将before按行分割
     const beforeLines = before.split(/\r?\n/);
+    const maxBeforeLineIdx = Math.max(beforeLines.length - 1, 0);
 
-    // 找到第一个和最后一个有变化的位置
-    let firstChangeLine = -1;
-    let lastChangeLine = -1;
-
+    // 第一遍遍历：把连续的变化 part（removed/added）归并为 hunk，
+    // 行号空间为 before 的行号（与第二遍的 lineNum 计算一致）
+    const hunks: Array<{ start: number, end: number }> = [];
     let beforeLineIdx = 0;
+    let lastPartWasChange = false;
 
-    // 第一遍遍历：找到变化范围
     for (let i = 0; i < diff.length; i++) {
         const part = diff[i];
         if (part.removed) {
             // 删除的行
-            if (firstChangeLine === -1) {
-                firstChangeLine = beforeLineIdx;
+            const start = beforeLineIdx;
+            const end = beforeLineIdx + part.count! - 1;
+            if (lastPartWasChange && hunks.length > 0) {
+                hunks[hunks.length - 1].end = Math.max(hunks[hunks.length - 1].end, end);
+            } else {
+                hunks.push({ start, end });
             }
-            lastChangeLine = beforeLineIdx + part.count! - 1;
             beforeLineIdx += part.count!;
         } else if (part.added) {
-            // 插入的行
-            if (firstChangeLine === -1) {
-                firstChangeLine = beforeLineIdx;
-            }
             // 插入的行映射到插入位置的行号（插入在beforeLineIdx位置之后）
-            lastChangeLine = Math.max(lastChangeLine, beforeLineIdx);
+            const pos = beforeLineIdx;
+            if (lastPartWasChange && hunks.length > 0) {
+                hunks[hunks.length - 1].end = Math.max(hunks[hunks.length - 1].end, pos);
+            } else {
+                hunks.push({ start: pos, end: pos });
+            }
         } else {
             // 未修改的行
             beforeLineIdx += part.count!;
         }
+        lastPartWasChange = !!(part.added || part.removed);
     }
 
     // 如果没有变化，返回空字符串
-    if (firstChangeLine === -1) {
+    if (hunks.length === 0) {
         return "";
     }
 
-    // 根据padding扩展上下文范围
-    const startLine = Math.max(0, firstChangeLine - padding);
-    const endLine = Math.min(beforeLines.length - 1, lastChangeLine + padding);
+    // 按padding扩展每个hunk的上下文范围，并合并重叠/相邻的窗口
+    const windows: Array<{ start: number, end: number }> = [];
+    for (const hunk of hunks) {
+        const start = Math.max(0, hunk.start - padding);
+        const end = Math.min(maxBeforeLineIdx, hunk.end + padding);
+        const last = windows[windows.length - 1];
+        if (last && start <= last.end + 1) {
+            last.end = Math.max(last.end, end);
+        } else {
+            windows.push({ start, end });
+        }
+    }
 
-    // 第二遍遍历：构建输出
+    // 判断某行落在哪个窗口；未命中返回-1。窗口有序且不重叠，lineNum 单调不减，线性推进即可。
+    let windowPtr = 0;
+    const locateWindow = (lineNum: number): number => {
+        while (windowPtr < windows.length && windows[windowPtr].end < lineNum) {
+            windowPtr++;
+        }
+        if (windowPtr < windows.length && lineNum >= windows[windowPtr].start) {
+            return windowPtr;
+        }
+        return -1;
+    };
+
+    // 第二遍遍历：构建输出。只在窗口内输出；跨窗口时插入 "..." 分隔。
     const result: string[] = [];
+    let lastEmittedWindow = -1;
+    const emit = (lineNum: number, text: string) => {
+        const w = locateWindow(lineNum);
+        if (w === -1) {
+            return;
+        }
+        if (w > lastEmittedWindow && result.length > 0) {
+            result.push('...');
+        }
+        lastEmittedWindow = w;
+        result.push(text);
+    };
+
     beforeLineIdx = 0;
     let afterLineIdx = 0;  // 追踪在after文本中的行号（0-based）
 
@@ -128,10 +176,8 @@ export function getDiffWithMarkers(
 
             for (let j = 0; j < lines.length; j++) {
                 const lineNum = beforeLineIdx + j;
-                if (lineNum >= startLine && lineNum <= endLine) {
-                    // Delete的行不添加行号
-                    result.push(`<|Delete|>${lines[j]}`);
-                }
+                // Delete的行不添加行号
+                emit(lineNum, `<|Delete|>${lines[j]}`);
             }
 
             // 如果紧接着是插入，处理插入的行
@@ -143,10 +189,8 @@ export function getDiffWithMarkers(
 
                 for (let j = 0; j < addedLines.length; j++) {
                     const lineNum = beforeLineIdx;
-                    if (lineNum >= startLine && lineNum <= endLine) {
-                        const linePrefix = addLineNumberAfter ? `${afterLineIdx + 1} ` : '';
-                        result.push(`${linePrefix}<|Insert|>${addedLines[j]}`);
-                    }
+                    const linePrefix = addLineNumberAfter ? `${afterLineIdx + 1} ` : '';
+                    emit(lineNum, `${linePrefix}<|Insert|>${addedLines[j]}`);
                     afterLineIdx++;
                 }
 
@@ -160,10 +204,8 @@ export function getDiffWithMarkers(
             // 独立的插入（前面没有删除）
             for (let j = 0; j < lines.length; j++) {
                 const lineNum = beforeLineIdx;
-                if (lineNum >= startLine && lineNum <= endLine) {
-                    const linePrefix = addLineNumberAfter ? `${afterLineIdx + 1} ` : '';
-                    result.push(`${linePrefix}<|Insert|>${lines[j]}`);
-                }
+                const linePrefix = addLineNumberAfter ? `${afterLineIdx + 1} ` : '';
+                emit(lineNum, `${linePrefix}<|Insert|>${lines[j]}`);
                 afterLineIdx++;
             }
             // 注意：插入不增加beforeLineIdx，因为before中没有这些行
@@ -171,10 +213,8 @@ export function getDiffWithMarkers(
             // 未修改的行
             for (let j = 0; j < lines.length; j++) {
                 const lineNum = beforeLineIdx + j;
-                if (lineNum >= startLine && lineNum <= endLine) {
-                    const linePrefix = addLineNumberAfter ? `${afterLineIdx + 1} ` : '';
-                    result.push(`${linePrefix}${lines[j]}`);
-                }
+                const linePrefix = addLineNumberAfter ? `${afterLineIdx + 1} ` : '';
+                emit(lineNum, `${linePrefix}${lines[j]}`);
                 afterLineIdx++;
             }
             beforeLineIdx += lines.length;
@@ -189,11 +229,15 @@ export function getDiffWithMarkers(
  * 合并一整段编辑事件的首尾两个log，事先已确定处于同一focus下
  * @param firstLog 同一focus下的第一个log
  * @param lastLog 同一focus下的最后一个log
- * @returns 代表该focus的log
+ * @returns 代表该focus的log；若首尾内容相同（净零编辑）则返回null表示整块丢弃
  */
 function mergeFirstAndLastEditLogs(firstLog: logItem.LogItem, lastLog: logItem.LogItem): logItem.LogItem | null {
     if (!firstLog.context || !lastLog.context) {
         console.error('mergeEdit failed to get context')
+        return null
+    }
+    // 净零编辑：先增后删等往复操作后内容回到原样，整块丢弃，不进入History
+    if (firstLog.context.content.before === lastLog.context.content.after) {
         return null
     }
     // 选取范围较小的Artifact作为合并后的Artifact，通常小的Artifact更精确
@@ -248,7 +292,9 @@ export function mergeEditLogs(logs: logItem.LogItem[]): logItem.LogItem[] {
             lastEditIdx--
         }
 
-        if (lastEditIdx - firstIdx > 1) {  // 孤立的编辑事件不做合并，因为本身已经是一个focus块
+        // ≥2条连续编辑即合并（BitFun Markdown debounce 后每段击键只产生一条事件，
+        // 典型的"加→删"只有两条；合并后净零编辑由 mergeFirstAndLastEditLogs 丢弃）
+        if (lastEditIdx - firstIdx >= 1) {
             clsList.push({ firstIdx: firstIdx, lastIdx: lastEditIdx })
         }
         firstIdx = lastIdx
@@ -271,15 +317,10 @@ export function mergeEditLogs(logs: logItem.LogItem[]): logItem.LogItem[] {
             result.push(logs[currentIdx])
             currentIdx++
         }
-        // 合并当前focus块
+        // 合并当前focus块；净零编辑返回null，整块丢弃
         const mergedLog = mergeFirstAndLastEditLogs(logs[cluster.firstIdx], logs[cluster.lastIdx])
         if (mergedLog) {
             result.push(mergedLog)
-        } else {
-            // 如果合并失败，保留原始日志
-            for (let i = cluster.firstIdx; i <= cluster.lastIdx; i++) {
-                result.push(logs[i])
-            }
         }
 
         // 跳过已合并的日志
