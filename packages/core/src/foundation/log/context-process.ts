@@ -188,8 +188,11 @@ export async function getLogItemsFromChangedText(
   const logItems: logItem.LogItem[] = [];
   const list = Array.isArray(changes) ? changes : [];
 
-  // No granular changes but full after snapshot — still record a file-level edit.
-  if (list.length === 0 && (typeof beforeText === 'string' || typeof afterText === 'string')) {
+  // No granular changes but full before/after snapshots — record a file-level edit only
+  // when we actually have a before baseline. Without beforeText (e.g. cursor moves or
+  // selection changes reported as document-change events) we cannot tell whether content
+  // changed, and comparing '' against the full text would fabricate a whole-file Edit.
+  if (list.length === 0 && typeof beforeText === 'string') {
     const start = { line: 0, character: 0 };
     const end = { line: Math.max(0, lineCount - 1), character: 0 };
     const artifact = await getArtifactFromRange(languageIntel, uri, start, end, lineCount, true);

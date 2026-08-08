@@ -32,8 +32,8 @@ const EventTypesCanAdd2History: EventType[] = [
 ];
 
 /**
- * Foreshadow ??????L3?
- * ???CursorContext / AttentionZone / SoftRelContext / KeywordContext / LastArtifactContext / History / Task
+ * Foreshadow 上下文汇总层（L3）
+ * 汇总 CursorContext / AttentionZone / SoftRelContext / KeywordContext / LastArtifactContext / History / Task
  */
 export class Foreshadow {
   private cursorContext: CursorContext | undefined = undefined;
