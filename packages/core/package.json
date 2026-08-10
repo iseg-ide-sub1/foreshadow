@@ -1,6 +1,6 @@
 {
   "name": "@foreshadow/core",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Foreshadow L2/L3 foundation and context (platform-agnostic)",
   "license": "MIT",
   "type": "module",
