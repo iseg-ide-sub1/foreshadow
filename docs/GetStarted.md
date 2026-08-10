@@ -7,7 +7,7 @@
 ## 1. 环境要求
 
 | 项 | 要求 |
-|----|------|
+| --- | --- |
 | Node.js | 建议 18+ |
 | 包管理 | **pnpm**（仓库使用 `pnpm-lock.yaml`） |
 | 编辑器 | VS Code 或 Cursor，`engines.vscode` ≥ `^1.80.0` |
@@ -26,7 +26,7 @@ pnpm install
 ### 2.1 常用脚本
 
 | 命令 | 作用 |
-|------|------|
+| --- | --- |
 | `pnpm compile` | 单次 webpack 编译 → `out/extension/extension.js` |
 | `pnpm watch` | webpack 监听模式，改 TS 后自动重编 |
 | `pnpm package` | production 打包（`vscode:prepublish` 会调用） |
@@ -97,12 +97,12 @@ pnpm dev
 1. 先执行一次 webpack 编译；
 2. 默认再起 `webpack --watch`；
 3. 查找 Cursor / VS Code CLI，并以  
-   `--extensionDevelopmentPath=<仓库根>` 启动 Extension Development Host。
+`--extensionDevelopmentPath=<仓库根>` 启动 Extension Development Host。
 
 环境变量：
 
 | 变量 | 含义 |
-|------|------|
+| --- | --- |
 | `FORESHADOW_EDITOR` | 指定编辑器可执行文件路径（CLI 不在 PATH 时） |
 | `FORESHADOW_DEV_WORKSPACE` | 启动 Host 时顺带打开的工作区路径 |
 | `FORESHADOW_DEV_WATCH` | 设为 `1` 强制 watch（`pnpm dev` 已带 `--watch`） |
@@ -129,7 +129,7 @@ pnpm dev
 ### 3.4 配置项（Settings）
 
 | Key | 默认 | 说明 |
-|-----|------|------|
+| --- | --- | --- |
 | `foreshadow.saveDir` | `.foreshadow` | 工作区相对数据目录（日志/任务/软关系等） |
 | `foreshadow.control.taskRecognize` | `true` | 周期任务识别开关 |
 | `foreshadow.taskRecognizer.baseURL` | OpenAI 兼容地址 | LLM 网关 |
@@ -196,7 +196,7 @@ pnpm lint
 ### 5.2 改代码时该落在哪一层？
 
 | 你想做的事 | 应修改的位置 |
-|------------|--------------|
+| --- | --- |
 | 监听新的 IDE 事件、映射 vscode 类型 | L1 `event-bridge.ts` / `mapper.ts` |
 | 增加平台能力（读文件、搜代码、LLM…） | L2 先声明 Port → L1 再实现 |
 | 日志结构化、持久化、RepoMap、软关系、Task 编排 | L2 `foundation/**` |
@@ -232,7 +232,7 @@ L2/L3 **不要**使用 `vscode.Uri` / `vscode.Position` 等。统一使用：
 
 - 对外结构：`Foreshadow.toJSONObject()`（导出前会 `deduplicate`）
 - 去重优先级：  
-  `CursorContext > AttentionZone > SoftRelContext > KeywordContext > LastArtifactContext`
+`CursorContext > AttentionZone > SoftRelContext > KeywordContext > LastArtifactContext`
 - 另有：`toAbstract()` / `checkCompleteness()` / `clone()`
 
 WebView / 命令应通过 `FoundationRuntime.getSnapshot()` 或 `exportContextJson()` 取数，不要在 L1 拼装七项字段。

@@ -6,6 +6,7 @@ export const maxTasksNum = 10;
 
 export const UIUpdateInterval = 500;
 export const autoRecognizeTaskInterval = 1000 * 60;
+export const FORESHADOW_SAVE_INTERVAL_MS = 5 * 60 * 1000;
 
 export const editDiffPadding = 5;
 export const artifactLostFocusThr = 2 * editDiffPadding;

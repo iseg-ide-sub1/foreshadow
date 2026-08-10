@@ -40,8 +40,8 @@ export class FoundationRuntime {
   private disposables: Array<{ dispose(): void }> = [];
 
   constructor(ports: FoundationPorts) {
-    this.logStore = new LogStore(ports.fs, ports.workspace);
-    this.taskStore = new TaskStore(ports.fs, ports.workspace);
+    this.logStore = new LogStore(ports.fs, ports.workspace, ports.scheduler);
+    this.taskStore = new TaskStore(ports.fs, ports.workspace, ports.scheduler);
     this.repoMap = new RepoMap(
       ports.documents,
       ports.languageIntel,
@@ -106,6 +106,8 @@ export class FoundationRuntime {
   dispose() {
     this.taskRecognizer.dispose();
     this.repoMap.dispose();
+    this.logStore.dispose();
+    this.taskStore.dispose();
     for (const d of this.disposables) d.dispose();
     setArtifactContextQueryService(undefined);
   }

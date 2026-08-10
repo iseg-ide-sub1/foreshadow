@@ -1,3 +1,4 @@
+import * as os from 'os';
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { WorkspacePort } from '../../../foundation/ports/workspace-port';
@@ -23,8 +24,10 @@ export class VscodeWorkspacePort implements WorkspacePort {
   }
 
   getDataDir(): string {
-    const saveDir = vscode.workspace.getConfiguration('foreshadow').get<string>('saveDir', DEFAULT_SAVE_DIR);
-    return this.resolvePath(saveDir || DEFAULT_SAVE_DIR);
+    const saveDirName = vscode.workspace.getConfiguration('foreshadow').get<string>('saveDir', DEFAULT_SAVE_DIR) || DEFAULT_SAVE_DIR;
+    const homeDir = os.homedir();
+    const workspaceName = this.getWorkspaceName();
+    return path.join(homeDir, saveDirName, workspaceName);
   }
 
   getExtensionPath(): string {
@@ -36,5 +39,13 @@ export class VscodeWorkspacePort implements WorkspacePort {
     if (roots.length === 0) return false;
     const normalized = fsPath.replace(/\\/g, '/').toLowerCase();
     return roots.some(r => normalized.startsWith(r.fsPath.replace(/\\/g, '/').toLowerCase()));
+  }
+
+  private getWorkspaceName(): string {
+    const root = this.getPrimaryRoot();
+    if (!root) return 'untitled';
+    const fsPath = root.fsPath.replace(/[/\\]+$/, '');
+    const name = path.basename(fsPath);
+    return name || 'untitled';
   }
 }
