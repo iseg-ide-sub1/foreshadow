@@ -1,7 +1,7 @@
 # `@foreshadow/core`
 
 Platform-agnostic Foreshadow **L2 foundation + L3 context** library for IDE hosts
-(BitFun, VS Code extension shell, future hosts).
+(BitFun, VS Code extension shell, future hosts), gives user intentions.
 
 ## Install
 

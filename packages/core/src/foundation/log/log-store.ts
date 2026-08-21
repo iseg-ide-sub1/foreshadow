@@ -1,7 +1,8 @@
 import { LogItem } from '../domain/log-item';
-import { maxLogItemsNum } from '../config/constants';
+import { maxLogItemsNum, FORESHADOW_SAVE_INTERVAL_MS } from '../config/constants';
 import { FileSystemPort } from '../ports/filesystem-port';
 import { WorkspacePort } from '../ports/workspace-port';
+import { SchedulerPort } from '../ports/scheduler-port';
 import { getFormattedTime } from '../utils/time';
 import { plugin_version } from '../config/constants';
 import { mergeEditLogs } from './edit-merge';
@@ -10,11 +11,20 @@ import * as path from 'path';
 export class LogStore {
   private logs: LogItem[] = [];
   private listeners: Array<(logs: LogItem[]) => void> = [];
+  private saveTimer: { dispose(): void } | null = null;
+  private isDisposed = false;
 
   constructor(
     private readonly fs: FileSystemPort,
     private readonly workspace: WorkspacePort,
-  ) {}
+    scheduler: SchedulerPort,
+  ) {
+    this.saveTimer = scheduler.setInterval(() => {
+      if (this.logs.length > 0) {
+        this.save().catch(e => console.error(e));
+      }
+    }, FORESHADOW_SAVE_INTERVAL_MS);
+  }
 
   getAll(): LogItem[] {
     return [...this.logs];
@@ -40,6 +50,7 @@ export class LogStore {
   }
 
   add(newLog: LogItem | LogItem[]) {
+    if (this.isDisposed) return;
     if (Array.isArray(newLog)) {
       this.logs = this.logs.concat(newLog);
     } else {
@@ -52,11 +63,13 @@ export class LogStore {
   }
 
   set(newLogs: LogItem[] = []) {
+    if (this.isDisposed) return;
     this.logs = newLogs;
     this.notify();
   }
 
   async save(): Promise<void> {
+    if (this.logs.length === 0) return;
     const dataDir = this.workspace.getDataDir();
     const logsDir = path.join(dataDir, 'logs');
     await this.fs.mkdirp(logsDir);
@@ -67,5 +80,13 @@ export class LogStore {
     await this.fs.writeFile(filePath, content);
     this.logs = [];
     this.notify();
+  }
+
+  dispose() {
+    this.isDisposed = true;
+    if (this.saveTimer) {
+      this.saveTimer.dispose();
+      this.saveTimer = null;
+    }
   }
 }
