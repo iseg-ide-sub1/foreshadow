@@ -38,6 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
     llm,
   });
   runtime.start();
+  test = 0;
 
   eventBridge = new EventBridge(runtime);
   eventBridge.start();

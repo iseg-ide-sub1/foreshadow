@@ -151,6 +151,7 @@ export class EdgeQuerier {
     }
     return EdgeType.UNKNOWN;
   }
+  
 
   private checkSameFileRelation(a: Artifact, b: Artifact): EdgeType {
     if (!a.location || !b.location) return EdgeType.UNKNOWN;

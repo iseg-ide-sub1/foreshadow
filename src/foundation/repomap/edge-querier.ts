@@ -6,6 +6,7 @@ import { EdgeType } from './edge-types';
 
 export class EdgeQuerier {
   private readonly cache: EdgeQCache;
+  private readonly test;
 
   constructor(private readonly languageIntel: LanguageIntelPort) {
     this.cache = new EdgeQCache();

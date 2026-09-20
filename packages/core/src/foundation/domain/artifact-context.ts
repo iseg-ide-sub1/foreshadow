@@ -496,6 +496,7 @@ export class ArtifactContext {
     }
   }
 
+
   getAllItems(): ArtifactContextItem[] {
     const items: ArtifactContextItem[] = [];
     if (this.typeDefinition) items.push(this.typeDefinition);
